@@ -30,9 +30,22 @@ class Regression(object):
             # YOUR CODE HERE:
             # IMPLEMENT THE MATRIX X_out=[1, X]
             # ================================================================ #
-            additional_all_one_feature = np.ones(N, 1)
-            X_out[:,0] = additional_all_one_feature
-            X_out[:,1:-1] = X
+            
+            # X = [x1, x2, x3, ..., xN]'
+            # X = [[1, 1, 1, ..., 1],
+            #      [x1, x2, x3, ..., xN]]'
+            
+            add_all_one_feature = np.ones(N)
+            
+            X_out[:,0] = add_all_one_feature
+            
+            X_out[:,1:] = X
+            
+#             print('X is', X)
+           
+#             print('X_out is', X_out)
+            
+#             print('X_out shape is', X_out.shape)
             
             # ================================================================ #
             # END YOUR CODE HERE
@@ -42,7 +55,11 @@ class Regression(object):
             # YOUR CODE HERE:
             # IMPLEMENT THE MATRIX X_out=[1, X, x^2,....,X^m]
             # ================================================================ #
-            pass
+            
+            X = X.reshape((-1,)) # convert (N, 1) to (N,)
+#             print('X shape is', X.shape)
+            for i in range(m + 1):
+                X_out[:,i] = np.power(X, i)
             
             # ================================================================ #
             # END YOUR CODE HERE
@@ -71,15 +88,24 @@ class Regression(object):
             #
             # ================================================================ #
             
-            # get the prediction
-            y_pred = predict(X)
-            
-            # calculate the loss
-            loss = np.inner(y_pred - y, y_pred - y) / N
-            
-            # calculate the grad
-            
-            
+            X_aug = self.gen_poly_features(X)
+
+            y = y.reshape(-1, 1)
+
+            y_pred = self.predict(X)
+
+            loss = ((y_pred - y).T @ (y_pred - y) / N)[0]  + (self.reg / 2) * (self.w.T @ self.w)[0]
+
+            grad = (-2 / N) * X_aug.T @ (y - X_aug @ self.w) + self.reg * self.w
+                
+#             X_aug = self.gen_poly_features(X) # X is subsampled
+#             y = y.reshape(-1, 1)              # y is subsampled 
+#             # get the prediction
+#             y_pred = self.predict(X)         
+#             # calculate the loss on the subsampled dataset
+#             loss = ((np.transpose(y_pred - y) @ (y_pred - y)) / N)[0]  
+#             # calculate the grad
+#             grad = -(2 / N) * np.transpose(X_aug) @ (y - X_aug @ self.w)
        
             # ================================================================ #
             # END YOUR CODE HERE
@@ -89,7 +115,17 @@ class Regression(object):
             # YOUR CODE HERE:
             # Calculate the loss function of the polynomial regression with order m
             # ================================================================ #
-            pass
+            X_aug = self.gen_poly_features(X)
+            
+            y = y.reshape(-1, 1)
+            
+            y_pred = self.predict(X)
+            
+            loss = ((y_pred - y).T @ (y_pred - y) / N)[0] + (self.reg / 2) * (self.w.T @ self.w)[0]
+            
+            # calculate the grad
+            grad = (-2 / N) * X_aug.T @ (y - X_aug @ self.w) + self.reg * self.w
+            
             # ================================================================ #
             # END YOUR CODE HERE
             # ================================================================ #
@@ -122,6 +158,12 @@ class Regression(object):
                 # The indices should be randomly generated to reduce correlations in the dataset.  
                 # Use np.random.choice.  It is better to user WITHOUT replacement.
                 # ================================================================ #
+                
+                # sample indices without replacement
+                batch_idx = np.random.choice(N, batch_size, replace = False)
+                X_batch = X[batch_idx]
+                y_batch = y[batch_idx]
+                
            
                 # ================================================================ #
                 # END YOUR CODE HERE
@@ -134,7 +176,25 @@ class Regression(object):
                 # save loss as loss and gradient as grad
                 # update the weights self.w
                 # ================================================================ #
-                pass
+                
+                # compute the loss and gradient
+                # loss_and_grad will take responsible for these
+                
+                loss, grad = self.loss_and_grad(X_batch, y_batch)
+                
+                # NOTE: the loss above is the loss on the subsampled dataset
+                # we need to find the loss on the whole dataset
+                # use the emp_loss will make the loss history less oscillated
+                y_pred = self.predict(X)
+                y = y.reshape(-1,1)
+#                 loss = ((np.transpose(y_pred - y) @ (y_pred - y)) / N)[0] 
+                loss = ((y_pred - y).T @ (y_pred - y) / N)[0] + (self.reg / 2) * (self.w.T @ self.w)[0]
+                
+                # update the weights 
+                # NOTE: the grad here is based on minibatch-SGD
+                
+                self.w = self.w - eta * grad
+                
                 # ================================================================ #
                 # END YOUR CODE HERE
                 # ================================================================ #
@@ -155,7 +215,21 @@ class Regression(object):
             # YOUR CODE HERE:
             # obtain the optimal weights from the closed form solution 
             # ================================================================ #
-            pass
+
+            y = y.reshape(-1, 1)
+            
+            # w = (X'X)^{-1}X'y = X^{+}y if (X'X) is invertible, i.e., X has linearly independent columns
+            
+            X_aug = self.gen_poly_features(X)
+            
+            reg_term = np.identity(X_aug.shape[1]) * (self.reg * N / 2)
+            
+            self.w = np.linalg.inv((X_aug.T @ X_aug) + reg_term) @ X_aug.T @ y
+            
+            y_pred = self.predict(X)
+            
+            loss = ((y_pred - y).T @ (y_pred - y) / N)[0] + (self.reg / 2) * (self.w.T @ self.w)[0]
+            
             # ================================================================ #
             # END YOUR CODE HERE
             # ================================================================ #
@@ -164,7 +238,19 @@ class Regression(object):
             # YOUR CODE HERE:
             # IMPLEMENT THE MATRIX X_out=[1, X, x^2,....,X^m]
             # ================================================================ #
-            pass
+            
+            y = y.reshape(-1, 1)
+            
+            X_aug = self.gen_poly_features(X)
+            
+            reg_term = np.identity(X_aug.shape[1]) * (self.reg * N / 2)
+            
+            self.w = np.linalg.inv(X_aug.T @ X_aug + reg_term) @ X_aug.T @ y
+            
+            y_pred = self.predict(X)
+            
+            loss = ((y_pred - y).T @ (y_pred - y) / N)[0] + (self.reg / 2) * (self.w.T @ self.w)[0]
+            
             # ================================================================ #
             # END YOUR CODE HERE
             # ================================================================ #
@@ -186,7 +272,14 @@ class Regression(object):
             # YOUR CODE HERE:
             # PREDICT THE TARGETS OF X 
             # ================================================================ #
-            X_aug = gen_poly_features(X)
+            
+            # first we should augment the data matrix X 
+            # add an additional feature to each instance and set it to one
+            
+            X_aug = self.gen_poly_features(X)
+            
+            # prediction
+            
             y_pred = X_aug @ self.w
             
             # ================================================================ #
@@ -197,7 +290,10 @@ class Regression(object):
             # YOUR CODE HERE:
             # IMPLEMENT THE MATRIX X_out=[1, X, x^2,....,X^m]
             # ================================================================ #
-            pass
+
+            X_aug = self.gen_poly_features(X)
+            
+            y_pred = X_aug @ self.w
             
             # ================================================================ #
             # END YOUR CODE HERE
