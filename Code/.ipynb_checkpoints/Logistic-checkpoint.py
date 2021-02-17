@@ -100,8 +100,6 @@ class Logistic(object):
                 batch_idx = np.random.choice(N, batch_size, replace = False)
                 X_batch = X[batch_idx]
                 y_batch = y[batch_idx]
-                
-                
            
                 # ================================================================ #
                 # END YOUR CODE HERE
@@ -114,6 +112,11 @@ class Logistic(object):
                 # save loss as loss and gradient as grad
                 # update the weights self.w
                 # ================================================================ #
+                
+                loss, grad = self.loss_and_grad(X_batch, y_batch)
+                
+                self.w = self.w - eta * grad
+                
               
                 # ================================================================ #
                 # END YOUR CODE HERE
@@ -126,7 +129,7 @@ class Logistic(object):
         Inputs:
         - X: N x d array of training data.
         Returns:
-        - y_pred: Predicted labelss for the data in X. y_pred is a 1-dimensional
+        - y_pred: Predicted labels for the data in X. y_pred is a 1-dimensional
           array of length N.
         """
         y_pred = np.zeros(X.shape[0])
@@ -145,8 +148,12 @@ class Logistic(object):
 #         # break the tie randomly
 #         s = np.random.binomial(1, .5, np.sum(y_soft == 0.5)) * 2 - 1
 #         y_pred[y_soft == 0.5] = s
+
+        y_pred = y_pred.reshape((-1, 1))
+
+        X_aug = self.gen_features(X)
         
-        y_lin = X.T @ self.w
+        y_lin = X_aug @ self.w
         
         # hard decision
         y_pred[y_lin > 0] = 1

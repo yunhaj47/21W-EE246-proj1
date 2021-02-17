@@ -182,17 +182,6 @@ class Regression(object):
                 
                 loss, grad = self.loss_and_grad(X_batch, y_batch)
                 
-                # NOTE: the loss above is the loss on the subsampled dataset
-                # we need to find the loss on the whole dataset
-                # use the emp_loss will make the loss history less oscillated
-                y_pred = self.predict(X)
-                y = y.reshape(-1,1)
-#                 loss = ((np.transpose(y_pred - y) @ (y_pred - y)) / N)[0] 
-                loss = ((y_pred - y).T @ (y_pred - y) / N)[0] + (self.reg / 2) * (self.w.T @ self.w)[0]
-                
-                # update the weights 
-                # NOTE: the grad here is based on minibatch-SGD
-                
                 self.w = self.w - eta * grad
                 
                 # ================================================================ #
