@@ -26,7 +26,13 @@ class Logistic(object):
         # YOUR CODE HERE:
         # IMPLEMENT THE MATRIX X_out=[1, X]
         # ================================================================ #
-
+        
+        add_all_one_feature = np.ones(N)
+            
+        X_out[:,0] = add_all_one_feature
+            
+        X_out[:,1:] = X
+    
         # ================================================================ #
         # END YOUR CODE HERE
         # ================================================================ #
@@ -49,6 +55,18 @@ class Logistic(object):
         # save loss function in loss
         # Calculate the gradient and save it as grad
         # ================================================================ #
+
+        X_aug = self.gen_features(X)
+#         print((-y * (X_aug @ self.w))) # (5000 * 1)
+        
+        loss = (1 / N) * np.sum(np.log( 1 + np.exp(-y * (X_aug @ self.w))))
+        
+#         temp = y / (np.exp(y * (X_aug @ self.w)) + 1)
+#         print('The shape of temp is', temp.shape)
+        
+        grad = (-1 / N) * (X_aug.T @ (y / (np.exp(y * (X_aug @ self.w)) + 1)))
+        
+        
         
         # ================================================================ #
         # END YOUR CODE HERE
@@ -78,6 +96,12 @@ class Logistic(object):
                 # The indices should be randomly generated to reduce correlations in the dataset.  
                 # Use np.random.choice.  It is better to user WITHOUT replacement.
                 # ================================================================ #
+                
+                batch_idx = np.random.choice(N, batch_size, replace = False)
+                X_batch = X[batch_idx]
+                y_batch = y[batch_idx]
+                
+                
            
                 # ================================================================ #
                 # END YOUR CODE HERE
@@ -110,6 +134,27 @@ class Logistic(object):
         # YOUR CODE HERE:
         # PREDICT THE LABELS OF X 
         # ================================================================ #
+        
+#         # this is unnecessary
+#         y_pred_soft = 1 / (1 + (X.T @ self.w))
+        
+#         # hard decision
+#         y_pred[y_soft > 0.5] = 1
+#         y_pred[y_soft < 0.5] = -1
+        
+#         # break the tie randomly
+#         s = np.random.binomial(1, .5, np.sum(y_soft == 0.5)) * 2 - 1
+#         y_pred[y_soft == 0.5] = s
+        
+        y_lin = X.T @ self.w
+        
+        # hard decision
+        y_pred[y_lin > 0] = 1
+        y_pred[y_lin < 0] = -1
+        
+        # break the tie randomly
+        s = np.random.binomial(1, .5, np.sum(y_lin == 0)) * 2 - 1
+        y_pred[y_lin == 0] = s
     
         
         # ================================================================ #
