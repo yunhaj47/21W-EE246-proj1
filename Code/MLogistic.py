@@ -29,6 +29,12 @@ class MLogistic(object):
         # YOUR CODE HERE:
         # IMPLEMENT THE MATRIX X_out=[1, X]
         # ================================================================ #
+        
+        add_all_one_feature = np.ones(N)
+            
+        X_out[:,0] = add_all_one_feature
+            
+        X_out[:,1:] = X
 
         # ================================================================ #
         # END YOUR CODE HERE
@@ -52,7 +58,38 @@ class MLogistic(object):
         # save loss function in loss
         # Calculate the gradient and save it as grad
         # ================================================================ #
-  
+        
+        X_aug = self.gen_features(X)
+        
+        N,d = X_aug.shape
+        
+        
+        # some auxiliary results that may need
+        lin = self.w @ X_aug.T        
+        exp = np.exp(lin)
+        denorm = np.sum(exp, axis=0)
+        denorm = denorm.reshape((1, -1))
+        
+        # softmax is the weights matrix for the combination of x_i's
+        # it contains the "probability"
+        
+        softmax = exp / denorm 
+        
+        # compute the loss
+        
+        loss_component = softmax[y, range(softmax.shape[1])]
+        loss += np.sum(np.log(loss_component)) / (-N)
+        
+        # compute the gradient
+        
+        # find the position that we want to subtract 1.0
+        
+        softmax[y, range(softmax.shape[1])] -= 1.0
+        
+        grad += (softmax @ X_aug)
+        
+        grad /= N
+    
         # ================================================================ #
         # END YOUR CODE HERE
         # ================================================================ #
@@ -81,6 +118,10 @@ class MLogistic(object):
                 # The indices should be randomly generated to reduce correlations in the dataset.  
                 # Use np.random.choice.  It is better to user WITHOUT replacement.
                 # ================================================================ #
+                
+                batch_idx = np.random.choice(N, batch_size, replace = False)
+                X_batch = X[batch_idx]
+                y_batch = y[batch_idx]
 
                 # ================================================================ #
                 # END YOUR CODE HERE
@@ -93,6 +134,9 @@ class MLogistic(object):
                 # save loss as loss and gradient as grad
                 # update the weights self.w
                 # ================================================================ #
+                
+                loss, grad = self.loss_and_grad(X_batch, y_batch)
+                self.w = self.w - eta * grad
              
                 # ================================================================ #
                 # END YOUR CODE HERE
@@ -113,7 +157,13 @@ class MLogistic(object):
         # YOUR CODE HERE:
         # PREDICT THE LABELS OF X 
         # ================================================================ #
-
+        
+        X_aug = self.gen_features(X)
+        
+        output = X_aug @ self.w.T
+        
+        y_pred = np.argmax(output, 1)
+        
         # ================================================================ #
         # END YOUR CODE HERE
         # ================================================================ #
